@@ -21,7 +21,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/contrib/contrib.hpp"
 
-
+// defining fingerint features
 typedef struct 
 {
 int xp[NUMBER_OF_MINUTIAE];
@@ -36,16 +36,14 @@ double DISTANCE_DB[97];
 FEATURE_T* FEATURE_DB = NULL;
 FEATURE_T* TARGET = NULL;
 FEATURE_T* feature=NULL;
-//PyObject *pName, *pFunc, *pArgs, *pModule,*pmModule, *pimModule, *plModule, *pValue, *pgValue, *psValue, *item;
 int validity_checker;
 
-// function declaration
+// function declarations
 double get_dis(FEATURE_T fy, FEATURE_T fz);
 unsigned int get_min_dist_index(double v[MAX_IMG_INDEX]);
 FEATURE_T Get_feature(char *n);
 void load_FEATURE_DB();
 int index_match(FEATURE_T TARGET);
-//int viewImage( PyObject *pnValue);
 //int pixels(int c, int d);
 float Get_localOrnt(Mat block , int blockcenteri , int blockcenterj);
 void thinning(cv::Mat& im);
@@ -54,15 +52,15 @@ void thinningIteration(cv::Mat& im, int iter);
 //main function
 int main(int argc, char *argv[])
 {
-	//Py_SetProgramName(argv[0]); 
-	//Py_Initialize();
+
 	int a;	
+	//memory allocation for storing the fingerprint feautures
 	FEATURE_DB = malloc(42949*sizeof(FEATURE_T));
   	TARGET = malloc(10*sizeof(FEATURE_T));
  	feature = (FEATURE_T *)malloc(429*sizeof(FEATURE_T));
 	if (FEATURE_DB == 0)
 		{
-			printf("ERROR: Out of memory\n");
+			printf("No vaible fingerprint.\n");
 			return 1;
 		}
 	load_FEATURE_DB();
@@ -76,11 +74,11 @@ int main(int argc, char *argv[])
 	free(feature);
 	free(TARGET);
 	free(FEATURE_DB);
-	//Py_Finalize();
 return 0;
 }
 
-// function definitions: function#1
+// function definitions:
+// 1. saves the minutieas/features of all the fingerprints found in the folder
 void load_FEATURE_DB()
 {
 	char *path=IMG_DIR;
@@ -117,15 +115,15 @@ void load_FEATURE_DB()
 	}
 }
 
-// function#2
+// Function to extract the minuteas in a fingerprint image
 FEATURE_T Get_feature(char *n)
 {
-//******************************************************************image read from a folder
+//******************************************************************read image from folder
 	Mat gray,blur,num,den,bw,norm;
 	Mat img=imread("/home/marda/Desktop/PNG/1_1.png");
-//*************************************************************************Gray
+//*************************************************************************Grayscale
 	cvtColor(img, gray, CV_RGB2GRAY); 
-//***************************************************************************normalization
+//***************************************************************************image normalization
 	gray.convertTo(gray, CV_32F, 1.0/255.0);
 	cv::GaussianBlur(gray, blur, Size(0,0), 2, 2);
 	num = gray - blur;
@@ -134,13 +132,11 @@ FEATURE_T Get_feature(char *n)
 	gray = num / den;
 	cv::normalize(gray, norm, 0.0, 1.0, NORM_MINMAX, -1); 
 //***************************************************************************orientation
-	int blockSize=norm.cols/15-1; // defining block size; img.cols is 388 so blocksize is 17, tried by 10 output not good
-	//if (!blockSize%2) 
-		//blockSize+=1;
-	printf("blocksize %d\n",blockSize);
+	int blockSize=norm.cols/15-1; // defining block size; img.cols is 388 so blocksize is 17, tried by 10 output not good so 15 is better
+	//printf("blocksize %d\n",blockSize);
 	Mat ornt = Mat::zeros((norm.rows),(norm.cols),CV_32FC1);
 	orntdraw=img.clone();
-	printf("this is z orientation number of rows and cols %d and %d \n",ornt.rows,ornt.cols);
+	//printf("this is z orientation number of rows and cols %d and %d \n",ornt.rows,ornt.cols);
 
 	float r=blockSize;
 	int ii=0, jj=0; 
@@ -169,7 +165,7 @@ FEATURE_T Get_feature(char *n)
 	}
 	imshow("oriented image",orntdraw);
 
-//***************************************************************************ridge frequency
+//***************************************************************************performing ridge frequency
 	int d,k,pcount=0,ppos[32],val=i+j*img.rows;//int val;
 	float u,v,xsig[32],pmax,pmin,pfreq, Ofreq[val];
 	double xsig[32]; //cv::Mat gx = cv::Mat::zeros(block.rows, block.cols, CV_16S); 
@@ -332,7 +328,7 @@ FEATURE_T Get_feature(char *n)
 	return *feature;
 }
 
-//function#3
+//obtaining orientation map of the image one block at a time
 float Get_localOrnt(Mat block , int blockcenteri , int blockcenterj)
 {
 	float vx=0, vy=0, theta;
@@ -356,7 +352,7 @@ float Get_localOrnt(Mat block , int blockcenteri , int blockcenterj)
 	return theta;
 }
 
-//function#4
+//thinning of image pattern one unit at a time
 void thinningIteration(cv::Mat& im, int iter)
 {
     cv::Mat marker = cv::Mat::zeros(im.size(), CV_8UC1);
@@ -390,12 +386,7 @@ void thinningIteration(cv::Mat& im, int iter)
     im &= ~marker;
 }
 
-/**
- * Function for thinning the given binary image
- *
- * @param  im  Binary image with range = 0-255
- */
-//function#5
+// thinning the image pattern to unit width
 void thinning(cv::Mat& im)
 {
     im /= 255;
@@ -414,7 +405,7 @@ void thinning(cv::Mat& im)
     im *= 255;
 }
 
-//function#6
+//matching the input/target fingerprint to the database/list
 int index_match(FEATURE_T TARGET)
 {
 	int l;
@@ -424,7 +415,7 @@ int index_match(FEATURE_T TARGET)
 	return get_min_dist_index(DISTANCE_DB);
 }
 
-//function#7
+//calculating distance between the features of 2 fingerprints for similarity and possible match
 double get_dis( FEATURE_T fy, FEATURE_T fz)
 {
 	int i,j,count;
@@ -456,7 +447,7 @@ double get_dis( FEATURE_T fy, FEATURE_T fz)
 	return distance_t;
 }
 
-//function#8
+// compares the distance between the target/input fingerprint to each fingerprint in the database and returns the closest match
 unsigned int get_min_dist_index(double v[MAX_IMG_INDEX])
 {
 	int k, match_index=0;
