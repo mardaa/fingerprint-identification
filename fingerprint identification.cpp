@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdio.h>
 #include <math.h>
 //#include <Python.h>
@@ -21,13 +22,15 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/contrib/contrib.hpp"
 
+using namespace std;
+
 // defining fingerint features
 typedef struct 
 {
-int xp[NUMBER_OF_MINUTIAE];
-int yp[NUMBER_OF_MINUTIAE];
-int anglep[NUMBER_OF_MINUTIAE];
-char typee[NUMBER_OF_MINUTIAE];
+	int xp[NUMBER_OF_MINUTIAE];
+	int yp[NUMBER_OF_MINUTIAE];
+	int anglep[NUMBER_OF_MINUTIAE];
+	char typee[NUMBER_OF_MINUTIAE];
 }FEATURE_T;
 
 // global declarations
@@ -60,7 +63,7 @@ int main(int argc, char *argv[])
  	feature = (FEATURE_T *)malloc(429*sizeof(FEATURE_T));
 	if (FEATURE_DB == 0)
 		{
-			printf("No vaible fingerprint.\n");
+			cout<<"No vaible fingerprint.\n";
 			return 1;
 		}
 	load_FEATURE_DB();
@@ -68,9 +71,9 @@ int main(int argc, char *argv[])
 	*TARGET = FEATURE_DB[TARGET_INDEX];
 	a = index_match(*TARGET);
 	if (a == TARGET_INDEX)
-		printf("FINGERPRINT INDEX MATCHING SUCCESSFUL!!!!!!!!!!!!!! \n");
+		cout<<"FINGERPRINT INDEX MATCHING SUCCESSFUL!!!!!!!!!!!!!! \n";
 	else
-		printf("No match found in the database \n");
+		cout<<"No match found in the database \n";
 	free(feature);
 	free(TARGET);
 	free(FEATURE_DB);
@@ -91,6 +94,7 @@ void load_FEATURE_DB()
 	d = opendir(IMG_DIR);
 	if (d) {
 		for(i=0;i<MAX_IMG_INDEX;i++) {
+			//loading image directory
 			if((dir = readdir(d))!=NULL) {
 				validity_checker=0;
 				oo=i+1;
@@ -98,8 +102,8 @@ void load_FEATURE_DB()
 				strcat(fn,dir->d_name);
 				lstat(fn,&stbuf);
 				if(S_ISREG(stbuf.st_mode)){
-					printf("                    LOADING IMAGE NUMBER: %d \n",oo);
-					//printf("file_name == %s\n",fn);
+					cout<<"                    LOADING IMAGE NUMBER: %d \n",oo;
+					//cout"file_name == %s\n",fn;
 					FEATURE_DB[i] = Get_feature(fn);
 					if (validity_checker == 1){
 						--i; // discards invalid fingerprint
@@ -118,12 +122,12 @@ void load_FEATURE_DB()
 // Function to extract the minuteas in a fingerprint image
 FEATURE_T Get_feature(char *n)
 {
-//******************************************************************read image from folder
+	//******************************************************************read image from folder
 	Mat gray,blur,num,den,bw,norm;
-	Mat img=imread("/home/marda/Desktop/PNG/1_1.png");
-//*************************************************************************Grayscale
+	Mat img=imread((new string (n), 1));
+	//*************************************************************************Grayscale
 	cvtColor(img, gray, CV_RGB2GRAY); 
-//***************************************************************************image normalization
+	//***************************************************************************image normalization
 	gray.convertTo(gray, CV_32F, 1.0/255.0);
 	cv::GaussianBlur(gray, blur, Size(0,0), 2, 2);
 	num = gray - blur;
@@ -131,12 +135,12 @@ FEATURE_T Get_feature(char *n)
 	cv::pow(blur, 0.5, den);
 	gray = num / den;
 	cv::normalize(gray, norm, 0.0, 1.0, NORM_MINMAX, -1); 
-//***************************************************************************orientation
+	//***************************************************************************orientation
 	int blockSize=norm.cols/15-1; // defining block size; img.cols is 388 so blocksize is 17, tried by 10 output not good so 15 is better
-	//printf("blocksize %d\n",blockSize);
+	//cout<<"blocksize %d\n",blockSize;
 	Mat ornt = Mat::zeros((norm.rows),(norm.cols),CV_32FC1);
 	orntdraw=img.clone();
-	//printf("this is z orientation number of rows and cols %d and %d \n",ornt.rows,ornt.cols);
+	//cout<<"this is z orientation number of rows and cols %d and %d \n",ornt.rows,ornt.cols;
 
 	float r=blockSize;
 	int ii=0, jj=0; 
@@ -145,7 +149,7 @@ FEATURE_T Get_feature(char *n)
 		for (int j=0;j< norm.cols-blockSize;j+= blockSize) { // dividing image into blocks and accessing them
 			blockcenter_i = i + (blockSize/2);
 			blockcenter_j = j + (blockSize/2);
-			// printf("block center x,y= %d,%d   ",blockcenter_i, blockcenter_j);
+			// cout<<"block center x,y= %d,%d   ",blockcenter_i, blockcenter_j;
 			float a=Get_localOrnt(norm(Rect(j,i,blockSize,blockSize)) , blockcenter_i , blockcenter_j);
 			float dx, px, py;
 			int x=blockcenter_i;
@@ -165,7 +169,7 @@ FEATURE_T Get_feature(char *n)
 	}
 	imshow("oriented image",orntdraw);
 
-//***************************************************************************performing ridge frequency
+	//***************************************************************************performing ridge frequency
 	int d,k,pcount=0,ppos[32],val=i+j*img.rows;//int val;
 	float u,v,xsig[32],pmax,pmin,pfreq, Ofreq[val];
 	double xsig[32]; //cv::Mat gx = cv::Mat::zeros(block.rows, block.cols, CV_16S); 
@@ -181,9 +185,9 @@ FEATURE_T Get_feature(char *n)
 					xsig[k]+=(norm.at<float>(u,v));
 				}
 				xsig[k]/=16; 
-				//printf("xsig[%d] ==%f      ",k,xsig[k]); 
+				//cout<<"xsig[%d] ==%f      ",k,xsig[k]; 
 			}
-			//printf("val = %d    ",val);
+			//cout<<"val = %d    ",val;
 			pmax = xsig[0];
 			pmin = xsig[0];
 			for(k=0;k<32;k++){
@@ -205,21 +209,21 @@ FEATURE_T Get_feature(char *n)
 					pfreq/=pcount-1;
 				}
 			}
-			//printf("pfreq %f   ",pfreq);
+			//cout<<"pfreq %f   ",pfreq;
 			if(pfreq >30)
 				Ofreq[val]=0.0;
 			else if(pfreq<2)
 				Ofreq[val]=0.0;
 			else
 				Ofreq[val] =1/pfreq;
-			printf("Ofreq %d == %d    ",val,Ofreq);			
+			cout<<"Ofreq %d == %d    ",val,Ofreq;			
 	   
 		}
 	}
-//***************************************************************************gaborfilter
+	//***************************************************************************gaborfilter
 	Mat img1, dest;
 	img1=img.clone();
-	int ks=ornt.rows - 1, hks = (ks-1)/2, phi= 0.55*CV_PI; // ks=21, hks=10 //printf("orntrows=%d \n",ks);
+	int ks=ornt.rows - 1, hks = (ks-1)/2, phi= 0.55*CV_PI; // ks=21, hks=10 //cout<<"orntrows=%d \n",ks;
 	cv::Mat kernel(ks,ks, CV_32F);
 	double sigma = 5.0, x_theta, y_theta, del = 2.0/(ks-1), lmbd = 50;
 	for (int y=-hks; y<=hks; y++) {
@@ -233,14 +237,14 @@ FEATURE_T Get_feature(char *n)
 	img1.convertTo(img1, CV_32F, 0.7/255, 0);
 	cv::filter2D(img1, dest, CV_32F, kernel);
 	cv::imshow("Process window", dest);
-//***************************************************************************binarization
+	//***************************************************************************binarization
 	cv::threshold(img, bw, 180, 255, CV_THRESH_BINARY);
 	imshow("binarized",bw);
-//***************************************************************************thinning
+	//***************************************************************************thinning
 	thinning(bw);
 	cv::imshow("src", src);
 	cv::imshow("dst", bw);
-//******************************************************************PixelAccessing & MinuteaExtraction
+	//******************************************************************PixelAccessing & MinuteaExtraction
 	int b,x,y,a,c,d,e,f,gg,h,CN,w,q,angle;
 	int count=0;
 	w=0;
@@ -281,7 +285,7 @@ FEATURE_T Get_feature(char *n)
 						feature->typee[count]='T';
 					}
                         		else   break;
-			 		//printf("Termination found at %d, %d and angle=%d \n",x,y,angle);   
+			 		//cout<<"Termination found at %d, %d and angle=%d \n",x,y,angle;   
 					count=count+1;
 					w=w+1;
 				}
@@ -311,16 +315,16 @@ FEATURE_T Get_feature(char *n)
 					else   break;
 			  		count=count+1;
 					q=q+1;
-					//printf("Bifurcation found at %d, %d and angle=%d \n",x,y,angle);   
+					//cout<<"Bifurcation found at %d, %d and angle=%d \n",x,y,angle;   
 				}
 		 	}
 		}
 	}
-	printf("Number of termination found: %d \n", w);
-	printf("Number of Bifurcation found: %d \n", q);
-	printf("Number of minutiaes found: %d \n", count);
+	cout<<"Number of termination found: %d \n", w;
+	cout<<"Number of Bifurcation found: %d \n", q;
+	cout<<"Number of minutiaes found: %d \n", count;
 	if (count == 0){
-		printf("No minuteas found, INVALID FINGERPRINT !!!!");
+		cout<<"No minuteas found, INVALID FINGERPRINT !!!!";
 		validity_checker=1;
 	}
 	
@@ -455,7 +459,7 @@ unsigned int get_min_dist_index(double v[MAX_IMG_INDEX])
 	double r0=0; // since this is trial and we take sample images from same folder, error is 0 so the treshold has to be set to 0 or number close to 0
 	for (k=0; k<MAX_IMG_INDEX; k++)
 	{
-		printf("the distance of image index %d to the taget index == %f \n", k, v[k]);
+		cout<<"the distance of image index %d to the taget index == %f \n", k, v[k];
 		if (v[k] <= r0 && v[k] < current_min_index)
 		{
 			current_min_index = v[k];
@@ -463,7 +467,7 @@ unsigned int get_min_dist_index(double v[MAX_IMG_INDEX])
 		}
 	
 	}
-	printf("the found matching index is===%d \n", match_index);
+	cout<<"the found matching index is===%d \n", match_index;
 	return match_index;
 }
 
